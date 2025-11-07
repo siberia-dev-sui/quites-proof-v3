@@ -79,39 +79,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   
-  // Debug: Log all iExec-related globals to find the correct variable name
-  console.log('🔍 Debugging iExec globals:');
-  console.log('- IExecDataProtector:', typeof IExecDataProtector);
-  console.log('- window.IExecDataProtector:', typeof window.IExecDataProtector);
-  console.log('- window.iexec:', typeof window.iexec);
-  console.log('- window.IEXEC:', typeof window.IEXEC);
-  console.log('- window.dataProtector:', typeof window.dataProtector);
-  
-  // List ALL custom globals added to window (not standard browser APIs)
-  const customGlobals = Object.keys(window).filter(k => 
-    k.toLowerCase().includes('iexec') || 
-    k.toLowerCase().includes('dataprotector') ||
-    k.toLowerCase().includes('web3mail')
-  );
-  console.log('🔎 All iExec-related globals found:', customGlobals);
-  
-  // Check if DataProtector is available (try multiple possible names)
-  const DataProtectorClass = window.IExecDataProtector || window.dataProtector || window.iexec || window.IEXEC;
-  
-  if (!DataProtectorClass) {
-    console.error('❌ iExec DataProtector SDK not loaded! Check CDN script.');
-    console.error('📋 Checked variables: IExecDataProtector, dataProtector, iexec, IEXEC');
-    console.error('📋 Available:', customGlobals);
+  if (typeof IExecWeb3mail === 'undefined') {
+    console.error('❌ iExec Web3Mail SDK not loaded! Check CDN script.');
     alert('Error: iExec SDK not loaded. Please refresh the page.');
     return;
   }
   
   console.log('✅ Ethers.js loaded:', ethers.version);
-  console.log('✅ iExec DataProtector SDK loaded');
-  console.log('✅ DataProtector available:', DataProtectorClass);
-  
-  // Store the class globally for use in initialization
-  window.IExecDataProtectorClass = DataProtectorClass;
+  console.log('✅ iExec Web3Mail SDK loaded');
+  console.log('📍 Network:', CONFIG.NETWORK_NAME, `(Chain ID: ${CONFIG.NETWORK_ID})`);
+  console.log('🌐 Using iExec default Web3Mail configuration');
   
   // Get both buttons (navbar and hero)
   const navbarButton = document.getElementById('joinWhitelistBtn');
@@ -132,8 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   console.log('✅ iExec integration initialized successfully');
-  console.log('📍 Network:', CONFIG.NETWORK_NAME, `(Chain ID: ${CONFIG.NETWORK_ID})`);
-  console.log('🌐 Using iExec default Web3Mail configuration');
 });
 
 // ============================================================================
@@ -330,34 +305,27 @@ async function switchToArbitrum() {
 // ============================================================================
 
 /**
- * Initializes the iExec DataProtector SDK (includes Web3 Mail)
+ * Initializes the iExec Web3 Mail SDK
  * @returns {Promise<Object>} Initialized web3mail instance
  */
 async function initializeIExec() {
   try {
-    console.log('🔧 Initializing iExec DataProtector SDK...');
+    console.log('🔧 Initializing iExec SDK...');
     
     if (!provider) {
       throw new Error('Provider not initialized. Please connect wallet first.');
     }
     
-    // Get the DataProtector class (stored during initialization)
-    const DataProtectorClass = window.IExecDataProtectorClass || window.IExecDataProtector || window.dataProtector;
-    
-    if (!DataProtectorClass) {
-      throw new Error('DataProtector class not found. SDK may not be loaded.');
+    // Verify SDK is loaded
+    if (typeof IExecWeb3mail === 'undefined') {
+      throw new Error('iExec Web3Mail SDK not loaded. Please refresh the page.');
     }
     
-    // Initialize DataProtector with ethers provider
-    // DataProtector includes Web3Mail functionality
-    const dataProtector = new DataProtectorClass(provider);
+    // Initialize Web3Mail with ethers provider
+    // Note: The correct class name is IExecWeb3mail (lowercase 'm')
+    web3mail = new IExecWeb3mail(provider);
     
-    // Access the web3mail module from DataProtector
-    web3mail = dataProtector.web3mail;
-    
-    console.log('✅ iExec DataProtector initialized');
-    console.log('✅ Web3Mail module available:', !!web3mail);
-    
+    console.log('✅ iExec SDK initialized');
     return web3mail;
     
   } catch (error) {
