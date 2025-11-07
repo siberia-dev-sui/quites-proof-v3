@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   
-  if (typeof IExecWeb3mail === 'undefined') {
+  if (typeof IExecWeb3Mail === 'undefined') {
     console.error('❌ iExec Web3Mail SDK not loaded! Check CDN script.');
     alert('Error: iExec SDK not loaded. Please refresh the page.');
     return;
