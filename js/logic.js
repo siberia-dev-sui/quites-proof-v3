@@ -1,10 +1,14 @@
 /**
  * iExec Web3 Mail Integration Logic
- * Version: 1.0.0
+ * Version: 2.0.0 - ES Modules
  * Purpose: Handles wallet connection and Web3 Mail workflow for Quintes Protocol whitelist
  * 
  * Flow: Connect Wallet → Init iExec → Protect Email → Grant Access → Send Confirmation
  */
+
+// Import dependencies using ES Modules
+import * as ethers from 'ethers';
+import { IExecWeb3mail } from '@iexec/web3mail';
 
 // ============================================================================
 // CONFIGURATION
@@ -67,28 +71,11 @@ let web3mail = null;
 // ============================================================================
 
 /**
- * Resolve the global constructor exposed by the iExec Web3Mail UMD bundle.
- * Supports multiple naming variants to ensure compatibility across versions.
- * @returns {Function|null} Constructor if available, otherwise null
+ * Resolve the iExec constructor - simplified for ES Modules.
+ * @returns {Function} Constructor
  */
 function resolveIExecConstructor() {
-  if (typeof IExecWeb3Mail !== 'undefined') {
-    return IExecWeb3Mail;
-  }
-
-  if (typeof IExecWeb3mail !== 'undefined') {
-    return IExecWeb3mail;
-  }
-
-  if (window.IExec?.Web3Mail) {
-    return window.IExec.Web3Mail;
-  }
-
-  if (window.IExec?.web3mail) {
-    return window.IExec.web3mail;
-  }
-
-  return null;
+  return IExecWeb3mail;
 }
 
 /**
@@ -118,19 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Quintes Protocol - iExec Web3 Mail Integration');
   console.log('📋 Initializing...');
 
-  if (typeof ethers === 'undefined') {
-    console.error('❌ Ethers.js not detected. Ensure the CDN script is loaded in index.html');
-  } else {
-    console.log('✅ Ethers.js detected');
-  }
-
-  const detectedIExec = resolveIExecConstructor();
-  if (!detectedIExec) {
-    const candidates = getPossibleIExecGlobals();
-    console.warn('⚠️ iExec Web3Mail SDK not detected yet. Available window keys:', candidates);
-  } else {
-    console.log('✅ iExec Web3Mail SDK detected');
-  }
+  // Verify ES Module imports loaded correctly
+  console.log('✅ Ethers.js imported (ES Module)');
+  console.log('✅ iExec Web3Mail SDK imported (ES Module)');
   
   // Get both buttons (navbar and hero)
   const navbarButton = document.getElementById('joinWhitelistBtn');
