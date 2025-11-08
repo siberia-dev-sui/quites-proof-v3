@@ -1,8 +1,8 @@
 /**
  * Quintes Protocol - iExec Web3 Mail Integration
- * Version: 2.0.0 - Frontend-Only Architecture (Correct SDK Usage)
+ * Version: 2.1.0 - Enhanced UI with Modal & Loading States
  * 
- * Flow: Connect Wallet → Protect Email (DataProtector) → Grant Access → Send Email (Web3Mail)
+ * Flow: Connect Wallet → Email Modal → Protect Data → Grant Access → Send Email
  */
 
 import { IExecDataProtector } from '@iexec/dataprotector';
@@ -13,16 +13,11 @@ import { IExecWeb3mail } from '@iexec/web3mail';
 // ============================================================================
 
 const CONFIG = {
-  // Network configuration
   NETWORK_ID: 421614,
   NETWORK_NAME: 'Arbitrum Sepolia',
   NETWORK_HEX: '0x66eee',
   RPC_URL: 'https://sepolia-rollup.arbitrum.io/rpc',
   BLOCK_EXPLORER: 'https://sepolia.arbiscan.io/',
-  
-  // iExec Configuration
-  // Note: For production, you'll need to get an authorized app address from iExec dashboard
-  // For this PoC, we'll use the user's own address as the authorized entity
 };
 
 // ============================================================================
@@ -34,19 +29,32 @@ let protectedDataAddress = null;
 let dataProtector = null;
 let web3mail = null;
 
+// UI Elements
+let emailModal, emailInput, emailError, emailSubmit, loadingOverlay, loadingText, loadingSubtext;
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
 
-console.log('🚀 Quintes Protocol - iExec Web3 Mail Integration v2.0');
-console.log('📋 Frontend-Only Architecture (Correct SDK Usage)');
+console.log('🚀 Quintes Protocol - iExec Web3 Mail Integration v2.1');
+console.log('📋 Enhanced UI with Modal & Loading States');
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOM loaded, initializing...');
   
-  // Get both buttons
+  // Get UI elements
+  emailModal = document.getElementById('emailModal');
+  emailInput = document.getElementById('emailInput');
+  emailError = document.getElementById('emailError');
+  emailSubmit = document.getElementById('emailSubmit');
+  loadingOverlay = document.getElementById('loadingOverlay');
+  loadingText = document.getElementById('loadingText');
+  loadingSubtext = document.getElementById('loadingSubtext');
+  
+  // Get buttons
   const navbarButton = document.getElementById('joinWhitelistBtn');
   const heroButton = document.getElementById('joinWhitelistBtnHero');
+  const closeModal = document.getElementById('closeModal');
   
   if (navbarButton) {
     navbarButton.addEventListener('click', handleJoinWhitelist);
@@ -58,23 +66,77 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ Hero button connected');
   }
   
+  // Modal controls
+  if (closeModal) {
+    closeModal.addEventListener('click', closeEmailModal);
+  }
+  
+  if (emailModal) {
+    emailModal.addEventListener('click', (e) => {
+      if (e.target === emailModal) closeEmailModal();
+    });
+  }
+  
+  if (emailSubmit) {
+    emailSubmit.addEventListener('click', handleEmailSubmit);
+  }
+  
+  if (emailInput) {
+    emailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleEmailSubmit();
+    });
+    emailInput.addEventListener('input', () => {
+      emailError.classList.remove('active');
+    });
+  }
+  
   console.log('✨ Application ready!');
 });
+
+// ============================================================================
+// UI HELPER FUNCTIONS
+// ============================================================================
+
+function showEmailModal() {
+  emailModal.classList.add('active');
+  emailInput.value = '';
+  emailError.classList.remove('active');
+  emailInput.focus();
+}
+
+function closeEmailModal() {
+  emailModal.classList.remove('active');
+}
+
+function showLoading(text, subtext) {
+  loadingText.textContent = text;
+  loadingSubtext.textContent = subtext;
+  loadingOverlay.classList.add('active');
+}
+
+function hideLoading() {
+  loadingOverlay.classList.remove('active');
+}
+
+function showSuccess(message) {
+  alert(`✅ ${message}`);
+}
+
+function showError(message) {
+  alert(`❌ ${message}`);
+}
 
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
-/**
- * Main handler for Join Whitelist button
- */
 async function handleJoinWhitelist(event) {
   event.preventDefault();
   console.log('🎯 Join Whitelist clicked');
   
   // Check MetaMask
   if (!window.ethereum) {
-    alert('MetaMask is not installed.\n\nPlease install MetaMask to continue.\n\nYou will be redirected to the download page.');
+    showError('MetaMask is not installed.\n\nPlease install MetaMask to continue.');
     window.open('https://metamask.io/download/', '_blank');
     return;
   }
@@ -82,54 +144,92 @@ async function handleJoinWhitelist(event) {
   try {
     // STEP 1: Connect Wallet
     console.log('📍 Step 1: Connecting wallet...');
-    alert('🔐 STEP 1: Connect Your Wallet\n\n✓ This only reads your wallet address\n✓ Your funds are safe\n\nApprove the connection in MetaMask.');
+    showLoading('Connecting Wallet', 'Please approve in MetaMask...');
+    
     await connectWallet();
-    alert(`✅ Connected!\n\nAddress: ${userAddress.substring(0, 6)}...${userAddress.substring(38)}`);
+    hideLoading();
+    
+    showSuccess(`Wallet Connected!\n\nAddress: ${userAddress.substring(0, 6)}...${userAddress.substring(38)}`);
     console.log('✅ Step 1 complete');
     
-    // STEP 2: Get email
+    // STEP 2: Show email modal
     console.log('📍 Step 2: Requesting email...');
-    const userEmail = prompt('Enter your email address to join the whitelist:');
+    showEmailModal();
     
-    if (!userEmail || !isValidEmail(userEmail)) {
-      alert('Invalid email. Please try again.');
-      return;
+  } catch (error) {
+    hideLoading();
+    console.error('❌ Error:', error);
+    
+    if (error.code === 4001) {
+      showError('Transaction Rejected\n\nYou rejected the connection in MetaMask.');
+    } else if (error.message && error.message.includes('network')) {
+      showError('Network Error\n\nPlease check your connection and try again.');
+    } else {
+      showError(`Error: ${error.message}\n\nPlease try again.`);
     }
-    
-    console.log('📧 Email provided:', userEmail);
+  }
+}
+
+async function handleEmailSubmit() {
+  const email = emailInput.value.trim();
+  
+  // Validate email
+  if (!email || !isValidEmail(email)) {
+    emailError.classList.add('active');
+    emailInput.focus();
+    return;
+  }
+  
+  console.log('📧 Email provided:', email);
+  emailSubmit.classList.add('loading');
+  
+  try {
+    // Close modal
+    closeEmailModal();
     
     // STEP 3: Protect email data
     console.log('📍 Step 3: Protecting email data...');
-    alert('🔒 STEP 2: Encrypt Your Email\n\n✓ Your email will be encrypted\n✓ Only authorized apps can access it\n\nThis may take 30-60 seconds...');
-    protectedDataAddress = await protectEmailData(userEmail);
-    alert(`✅ Email Encrypted!\n\nProtected data address:\n${protectedDataAddress.substring(0, 10)}...${protectedDataAddress.substring(38)}`);
+    showLoading('Encrypting Your Email', 'This may take 30-60 seconds...');
+    
+    protectedDataAddress = await protectEmailData(email);
+    
+    showSuccess(`Email Encrypted!\n\nYour email is now protected with blockchain technology.`);
     console.log('✅ Step 3 complete');
     
-    // STEP 4: Grant access (to yourself for this PoC)
+    // STEP 4: Grant access
     console.log('📍 Step 4: Granting access...');
-    alert('✉️ STEP 3: Grant Access\n\n✓ Authorizing email access\n✓ This enables Web3 Mail delivery\n\nApprove the transaction...');
+    showLoading('Granting Access', 'Authorizing email access...');
+    
     await grantAccess();
-    alert('✅ Access Granted!');
+    
+    showSuccess('Access Granted!\n\nWeb3 Mail delivery is now enabled.');
     console.log('✅ Step 4 complete');
     
     // STEP 5: Send confirmation email
     console.log('📍 Step 5: Sending confirmation email...');
-    alert('📨 STEP 4: Send Confirmation\n\n✓ Sending welcome email via Web3 Mail\n\nThis may take 1-2 minutes...');
+    showLoading('Sending Confirmation', 'Delivering via Web3 Mail...');
+    
     await sendConfirmationEmail();
-    alert('🎉 SUCCESS!\n\n✅ You\'re on the whitelist!\n📧 Check your email in 1-2 minutes\n\nWelcome to Quintes Protocol!');
+    hideLoading();
+    
+    showSuccess('🎉 SUCCESS!\n\nYou\'re on the whitelist!\n\n📧 Check your email in 1-2 minutes.\n\nWelcome to Quintes Protocol!');
     console.log('✅ Step 5 complete');
     console.log('🎉 COMPLETE: User successfully added to whitelist');
     
   } catch (error) {
+    hideLoading();
+    emailSubmit.classList.remove('loading');
     console.error('❌ Error:', error);
     
     if (error.code === 4001) {
-      alert('❌ Transaction Rejected\n\nYou rejected the transaction in MetaMask.');
+      showError('Transaction Rejected\n\nYou rejected the transaction in MetaMask.');
     } else if (error.message && error.message.includes('network')) {
-      alert('❌ Network Error\n\nPlease check your connection and try again.');
+      showError('Network Error\n\nPlease check your connection and try again.');
     } else {
-      alert(`❌ Error:\n\n${error.message}\n\nPlease try again or contact support.`);
+      showError(`Error: ${error.message}\n\nPlease try again or contact support.`);
     }
+  } finally {
+    emailSubmit.classList.remove('loading');
   }
 }
 
@@ -137,9 +237,6 @@ async function handleJoinWhitelist(event) {
 // WALLET CONNECTION
 // ============================================================================
 
-/**
- * Connects to MetaMask wallet
- */
 async function connectWallet() {
   try {
     console.log('🔌 Requesting wallet connection...');
@@ -177,9 +274,6 @@ async function connectWallet() {
   }
 }
 
-/**
- * Switches to Arbitrum Sepolia testnet
- */
 async function switchToArbitrumSepolia() {
   try {
     await window.ethereum.request({
@@ -214,14 +308,10 @@ async function switchToArbitrumSepolia() {
 // iExec DATA PROTECTOR METHODS
 // ============================================================================
 
-/**
- * Protects user email using iExec DataProtector
- */
 async function protectEmailData(email) {
   try {
     console.log('🔒 Protecting email with DataProtector...');
     
-    // Use DataProtector Core to protect the email
     const protectedData = await dataProtector.core.protectData({
       data: { email: email },
       name: `Quintes Whitelist - ${email}`
@@ -236,19 +326,14 @@ async function protectEmailData(email) {
   }
 }
 
-/**
- * Grants access to protected data
- */
 async function grantAccess() {
   try {
     console.log('🔑 Granting access to protected data...');
     
-    // Grant access to the user's own address (for this PoC)
-    // In production, you'd grant to an authorized app address
     await dataProtector.core.grantAccess({
       protectedData: protectedDataAddress,
       authorizedUser: userAddress,
-      authorizedApp: userAddress, // Using user's address for PoC
+      authorizedApp: userAddress,
     });
     
     console.log('✅ Access granted');
@@ -263,9 +348,6 @@ async function grantAccess() {
 // iExec WEB3 MAIL METHODS
 // ============================================================================
 
-/**
- * Sends confirmation email via Web3 Mail
- */
 async function sendConfirmationEmail() {
   try {
     console.log('📨 Sending email via Web3 Mail...');
@@ -321,9 +403,6 @@ async function sendConfirmationEmail() {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-/**
- * Validates email format
- */
 function isValidEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -348,4 +427,3 @@ window.ethereum?.addEventListener('chainChanged', () => {
 });
 
 console.log('✨ Ready! Click "Join Whitelist" to start.');
-
