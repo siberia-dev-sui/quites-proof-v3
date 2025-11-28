@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .gradient-background {
+    background-color: #010017;
+    background-image: radial-gradient(at 100% 0, #00bfff03 0, transparent 30%), radial-gradient(at 52% 18%, #4d4dff03 0, transparent 40%), radial-gradient(at 0 0, #00ddff1a 0, transparent 30%);
+  }
+
+  .glass-morphism {
+    border: 1px solid #929fe780;
+    background: linear-gradient(153deg, #19183792, #1616318f);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .move-on-path {
+    offset-path: rect(auto auto auto auto round 9999px);
+    animation: move-on-path 4s linear infinite;
+    position: absolute;
+  }
+
+  @keyframes move-on-path {
+    to {
+      offset-distance: 100%;
+    }
+  }
+
+  /* Premium Card - Animated Gradient Border */
+  .premium-card-wrapper {
+    position: relative;
+    border-radius: 1rem;
+    padding: 2px;
+    background: linear-gradient(135deg, #00d9ff, #7b61ff, #ff006e, #00d9ff);
+    background-size: 300% 300%;
+    animation: gradient-rotate 4s ease infinite;
+  }
+
+  .premium-card-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    padding: 2px;
+    background: inherit;
+    filter: blur(12px);
+    opacity: 0.6;
+    z-index: -1;
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes gradient-rotate {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.02); }
+  }
+
+  /* Standard Card - Subtle style */
+  .standard-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+  }
+
+  .standard-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+  }
+
+  /* Premium Card Inner */
+  .premium-card-inner {
+    background: linear-gradient(135deg, rgba(0, 30, 60, 0.95), rgba(10, 15, 40, 0.98));
+    border-radius: calc(1rem - 2px);
+  }
+
+  /* Shine Effect */
+  .shine-effect {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-effect::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+    transform: rotate(45deg) translateX(-100%);
+    animation: shine 6s ease-in-out infinite;
+  }
+
+  @keyframes shine {
+    0%, 100% { transform: rotate(45deg) translateX(-100%); }
+    50% { transform: rotate(45deg) translateX(100%); }
+  }
+
+  /* Badge */
+  .badge-recommended {
+    background: linear-gradient(135deg, #00d9ff, #7b61ff);
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+  }
+}
+
+body {
+  color: #fff;
+  background: #000;
+}
